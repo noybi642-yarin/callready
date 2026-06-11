@@ -626,7 +626,7 @@ function StartCall({ profile, onReady }) {
           </div>
         )}
 
-        <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={go} disabled={!company.trim() || !role.trim()} style={{ opacity: (!company.trim() || !role.trim()) ? 0.5 : 1, marginTop: 14 }}>
+        <button className="btn btn-primary" onClick={go} disabled={!company.trim() || !role.trim()} style={{ opacity: (!company.trim() || !role.trim()) ? 0.5 : 1, marginTop: 14 }}>
           <i className="ti ti-sparkles" style={{ fontSize: 19 }} aria-hidden />
           צור בריף שיחה
         </button>
@@ -964,4 +964,91 @@ function Settings({ profile }) {
         <div className="card-title" style={{ marginBottom: 4, display: "flex", gap: 8, alignItems: "center", flexDirection: "row-reverse", justifyContent: "flex-end" }}>
           <i className="ti ti-plug" style={{ fontSize: 15, color: "var(--muted)" }} aria-hidden /> חיבורי API
         </div>
-        <div style={{ fontSize: 
+        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10, lineHeight: 1.6, textAlign: "right" }}>
+          חבר/י APIs לקבלת תכנים חיים: מחקר חברה, ניתוח קורות חיים, ויצירת בריפים מותאמים.
+        </div>
+        {[
+          { name: "Claude API (Anthropic)", desc: "יצירת בריפים ותשובות חכמות", status: "לא מחובר" },
+          { name: "Serper / Tavily", desc: "מחקר חברה בזמן אמת", status: "לא מחובר" },
+        ].map(api => (
+          <div key={api.name} className="set-row">
+            <span style={{ fontSize: 12, color: "var(--muted2)", fontFamily: "var(--mono)" }}>{api.status}</span>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>{api.name}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>{api.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ textAlign: "center", padding: "20px 0 4px", fontSize: 12, color: "var(--muted2)", fontFamily: "var(--mono)" }}>
+        CallReady v1.0
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// APP — ניהול מצב ראשי
+// ============================================================
+
+export default function CallReadyApp() {
+  const [tab, setTab] = useState("home");
+  const [profile, setProfile] = useState<any>(null);
+  const [briefs, setBriefs] = useState<any[]>(MOCK_RECENT_BRIEFS);
+  const [callData, setCallData] = useState<any>(null);
+
+  const handleProfileReady = (p: any) => { setProfile(p); setTab("home"); };
+  const handleCallReady = (data: any) => {
+    setCallData(data);
+    setBriefs(prev => [{ id: Date.now(), company: data.company, role: data.role, date: new Date().toLocaleDateString("he-IL"), score: 88 }, ...prev].slice(0, 10));
+    setTab("brief");
+  };
+
+  const renderPage = () => {
+    if (tab === "home") return <Dashboard profile={profile} briefs={briefs} onStartCall={() => setTab("start")} onUpload={() => setTab("upload")} />;
+    if (tab === "upload") return <Upload onReady={handleProfileReady} />;
+    if (tab === "start") return <StartCall profile={profile} onReady={handleCallReady} />;
+    if (tab === "brief") return callData ? <BriefView data={callData} /> : <StartCall profile={profile} onReady={handleCallReady} />;
+    if (tab === "questions") return <QuestionBank profile={profile} />;
+    if (tab === "settings") return <Settings profile={profile} />;
+    return null;
+  };
+
+  return (
+    <>
+      <style>{css}</style>
+      <div className="app">
+        <nav className="nav">
+          <span className="nav-logo">Call<span>Ready</span></span>
+          <button className="nav-btn" aria-label="עזרה"><i className="ti ti-help" aria-hidden /></button>
+        </nav>
+
+        {renderPage()}
+
+        <div className="tab-bar">
+          {[
+            { id: "home", icon: "ti-home", label: "בית" },
+            { id: "brief", icon: "ti-notes", label: "בריף" },
+            { id: "questions", icon: "ti-list-check", label: "שאלות" },
+            { id: "settings", icon: "ti-settings", label: "הגדרות" },
+          ].map(t => (
+            <button
+              key={t.id}
+              className={`tab ${
+                tab === t.id ||
+                (tab === "start" && t.id === "brief") ||
+                (tab === "upload" && t.id === "home")
+                  ? "active" : ""
+              }`}
+              onClick={() => setTab(t.id)}
+            >
+              <i className={`ti ${t.icon}`} aria-hidden />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+} 
